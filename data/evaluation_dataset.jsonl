@@ -1,0 +1,35 @@
+{"id":"sick_leave_amount","question":"How much sick leave does the handbook offer?","answerable":true,"relevant_pages":[28],"answer_keywords":["one week","paid"]}
+{"id":"sick_leave_pay","question":"Is sick leave paid or unpaid?","answerable":true,"relevant_pages":[28],"answer_keywords":["paid"]}
+{"id":"pto_annual_amount","question":"How many days of PTO do employees receive per year?","answerable":true,"relevant_pages":[27],"answer_keywords":["20 days"]}
+{"id":"pto_monthly_accrual","question":"At what rate does PTO accrue each month?","answerable":true,"relevant_pages":[27],"answer_keywords":["1.7 days per month"]}
+{"id":"pto_start","question":"When may an employee start taking PTO?","answerable":true,"relevant_pages":[27],"answer_keywords":["first week"]}
+{"id":"pto_rollover","question":"Can unused PTO be carried to the next year?","answerable":false,"relevant_pages":[],"answer_keywords":[]}
+{"id":"office_hours","question":"What hours does the company operate on weekdays?","answerable":true,"relevant_pages":[26],"answer_keywords":["9 a.m.","7 p.m."]}
+{"id":"arrival_window","question":"What is the employee arrival window?","answerable":true,"relevant_pages":[26],"answer_keywords":["9 a.m.","11 a.m."]}
+{"id":"weekday_schedule","question":"Does the stated operating schedule refer to weekdays or weekends?","answerable":true,"relevant_pages":[26],"answer_keywords":["weekdays"]}
+{"id":"wfh_frequency","question":"How often may an eligible employee normally work from home?","answerable":true,"relevant_pages":[23],"answer_keywords":["one day per week"]}
+{"id":"wfh_notice","question":"How far in advance should an employee request work from home?","answerable":true,"relevant_pages":[23],"answer_keywords":["two days"]}
+{"id":"wfh_emergency","question":"What should an employee do if an emergency requires working from home without prior approval?","answerable":true,"relevant_pages":[23],"answer_keywords":["call or email","manager"]}
+{"id":"wfh_internet","question":"What kind of internet connection and devices should be used when working from home?","answerable":true,"relevant_pages":[23],"answer_keywords":["fast","secure"]}
+{"id":"health_insurance","question":"What health benefit is provided at a minimum to eligible employees?","answerable":true,"relevant_pages":[22],"answer_keywords":["group health insurance"]}
+{"id":"expense_receipts","question":"How long after an expense should receipts be submitted?","answerable":true,"relevant_pages":[24],"answer_keywords":["three months"]}
+{"id":"expense_types","question":"What kinds of employee expenses may be reimbursed?","answerable":true,"relevant_pages":[24],"answer_keywords":["business travel","relocation","education"]}
+{"id":"company_car_eligibility","question":"Who may drive a company car?","answerable":true,"relevant_pages":[24],"answer_keywords":["indispensable part of your job","benefit"]}
+{"id":"company_car_accident","question":"Who should an employee contact after an accident in a company car?","answerable":true,"relevant_pages":[25],"answer_keywords":["HR department","immediately"]}
+{"id":"parking_allocation","question":"How are remaining parking spaces assigned?","answerable":true,"relevant_pages":[25],"answer_keywords":["first-come, first-served"]}
+{"id":"device_theft","question":"How soon should stolen company equipment be reported?","answerable":true,"relevant_pages":[26],"answer_keywords":["24 hours"]}
+{"id":"device_safety","question":"Name two ways to keep company devices secure.","answerable":true,"relevant_pages":[26],"answer_keywords":["password-protected","secure and private networks"]}
+{"id":"holiday_sunday","question":"If a holiday falls on Sunday, when is it observed?","answerable":true,"relevant_pages":[27],"answer_keywords":["closest business day"]}
+{"id":"floating_holiday","question":"What is the floating day for?","answerable":true,"relevant_pages":[28],"answer_keywords":["any day you choose"]}
+{"id":"sick_appointments","question":"Which leave should employees use for routine medical appointments?","answerable":true,"relevant_pages":[28],"answer_keywords":["PTO"]}
+{"id":"bereavement","question":"How much paid bereavement leave is offered?","answerable":true,"relevant_pages":[29],"answer_keywords":["three days"]}
+{"id":"jury_voting","question":"How much time off is described for jury duty and voting?","answerable":true,"relevant_pages":[29],"answer_keywords":["one day","two hours","one unpaid day"]}
+{"id":"parental_leave","question":"How much paid maternity and paternity leave is offered?","answerable":true,"relevant_pages":[30],"answer_keywords":["three months"]}
+{"id":"parental_notice","question":"How much notice should a new parent give HR before leave begins?","answerable":true,"relevant_pages":[30],"answer_keywords":["three months"]}
+{"id":"dental_coverage","question":"Does the handbook say whether dental insurance is included?","answerable":false,"relevant_pages":[],"answer_keywords":[]}
+{"id":"meal_breaks","question":"How long is the lunch break?","answerable":false,"relevant_pages":[],"answer_keywords":[]}
+{"id":"overtime_holidays","question":"Do holiday hours count toward overtime eligibility?","answerable":false,"relevant_pages":[],"answer_keywords":[]}
+{"id":"sick_leave_carryover","question":"Can unused sick leave be carried over to the next year?","answerable":false,"relevant_pages":[],"answer_keywords":[]}
+{"id":"combined_pto_and_sick_leave","question":"What annual PTO amount and paid sick-leave benefit does the handbook describe?","answerable":true,"relevant_pages":[27,28],"answer_keywords":["20 days","one week","paid"],"case_type":"multi_page_multi_fact"}
+{"id":"hris_identifier","question":"Which exact system is named for submitting a work-from-home request?","answerable":true,"relevant_pages":[23],"answer_keywords":["HRIS"],"case_type":"exact_identifier"}
+{"id":"company_car_keyword","question":"Find the phrase about company car accident reporting to HR.","answerable":true,"relevant_pages":[25],"answer_keywords":["HR department","immediately"],"case_type":"keyword_phrase"}

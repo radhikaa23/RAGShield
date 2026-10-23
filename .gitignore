@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+*.py[cod]
+data/chroma/
+data/uploads/
+evaluation-results.json
+.streamlit/secrets.toml
