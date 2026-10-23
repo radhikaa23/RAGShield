@@ -60,6 +60,10 @@ def validate_runtime_configuration():
     max_extracted_chars()
 
 
+def is_read_only_demo() -> bool:
+    return os.getenv("RAGSHIELD_DEMO_MODE", "false").strip().lower() in {"1", "true", "yes", "on"}
+
+
 def authenticate(authorization: str | None) -> str:
     expected = os.getenv("RAGSHIELD_ACCESS_TOKEN", "")
     if not expected:
@@ -98,6 +102,8 @@ def health():
 @app.post("/documents")
 async def upload_document(file: UploadFile = File(...), authorization: str | None = Header(default=None)):
     owner = authenticate(authorization)
+    if is_read_only_demo():
+        raise HTTPException(403, "Document uploads are disabled in read-only demo mode.")
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(415, "Only PDF files are accepted.")
     payload = await file.read(MAX_PDF_BYTES + 1)
@@ -149,6 +155,8 @@ def list_documents(authorization: str | None = Header(default=None)):
 @app.delete("/documents/{doc_id}")
 def delete_document(doc_id: str, authorization: str | None = Header(default=None)):
     owner = authenticate(authorization)
+    if is_read_only_demo():
+        raise HTTPException(403, "Document deletion is disabled in read-only demo mode.")
     try:
         # Owner-scoped existence check prevents ID tampering and hides other owners' IDs.
         metadata = index.get_document(owner, doc_id)

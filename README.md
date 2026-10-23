@@ -111,6 +111,26 @@ The evaluation builds isolated in-memory Chroma indexes, so it does not rewrite 
 
 The regular suite is deterministic and makes no provider calls. To opt into the separate live-model security probe, set `RAGSHIELD_RUN_LLM_SECURITY_TESTS=1` in the shell and provide `OPENAI_API_KEY`, then run `python -m pytest -m llm_security`. Live behavior can vary and provider charges may apply. The latest deterministic results and skipped live checks are in [docs/security-test-report.md](docs/security-test-report.md).
 
+## Deploy a read-only portfolio demo
+
+The repository includes `render.yaml` for the FastAPI backend. Public demo mode disables upload and deletion at both the UI and API layers. A fresh backend indexes the bundled sample handbook at startup. This mode is still a shared demo identity; do not upload or index private documents, and do not present it as multi-user authentication.
+
+1. Confirm `.env` is not tracked (`git check-ignore -v .env`) and is absent from the GitHub file list. Keep `.env` and all real tokens private. If a token was ever pushed or shown publicly, rotate it.
+2. Push the deployment files to GitHub: `app/main.py`, `frontend/streamlit_app.py`, `render.yaml`, and `README.md`.
+3. In Render, choose **New + → Blueprint**, connect this repository, and create the service from `render.yaml`. When prompted, set `RAGSHIELD_ACCESS_TOKEN` to a fresh random value of at least 32 characters. Do not put the token in the YAML or GitHub. Wait for deploy and confirm `https://<your-render-service>.onrender.com/health` returns `{"status":"ok",...}`.
+4. In Streamlit Community Cloud, create an app from this repository with entrypoint `frontend/streamlit_app.py`.
+5. In that Streamlit app's **Settings → Secrets**, add the following TOML, replacing the URL with your Render service URL and the token with the same secret you configured in Render:
+
+   ```toml
+   RAGSHIELD_API_URL = "https://<your-render-service>.onrender.com"
+   RAGSHIELD_ACCESS_TOKEN = "<same-private-token-as-Render>"
+   RAGSHIELD_DEMO_MODE = "true"
+   ```
+
+6. Save/reboot the Streamlit app. Its `streamlit.app` URL is the shareable UI link. Check that the sample handbook answers questions and that the UI has no upload control. The API also rejects upload and delete requests while demo mode is enabled.
+
+The backend uses local Chroma storage. On a host with an ephemeral filesystem, uploaded/indexed data can be lost on restart or redeploy; this read-only demo rebuilds its sample index at startup. For production or private documents, configure persistent storage and real per-user authentication before deployment.
+
 ### Measured comparison (local run, 35 cases)
 
 With 512/75 chunks and K=5, semantic retrieval gave Recall@K **1.000**, MRR **0.942**, and median retrieval latency **34.95 ms**; BM25 gave **0.903**, **0.823**, and **39.10 ms**; RRF hybrid gave **0.968**, **0.933**, and **73.35 ms**. The local answer fallback's citation page-hit rates were 0.867, 0.700, and 0.833 respectively. Unsupported-question abstention was 1.000 for semantic, 0.600 for BM25, and 0.800 for hybrid. This shows the practical risk of lexical matching without a calibrated relevance threshold; treat these as one local run, not a general performance guarantee.

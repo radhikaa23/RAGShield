@@ -6,15 +6,37 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
+
+def setting(name: str, default: str = "") -> str:
+    """Read Streamlit Cloud secrets first, then local environment/.env values."""
+    try:
+        value = st.secrets.get(name)
+        if value is not None:
+            return str(value)
+    except Exception:
+        # Local runs may not have a .streamlit/secrets.toml file.
+        pass
+    return os.getenv(name, default)
+
+
+def enabled(name: str, default: str = "false") -> bool:
+    return setting(name, default).strip().lower() in {"1", "true", "yes", "on"}
+
 st.set_page_config(page_title="RAGShield", page_icon="🛡️", layout="wide")
 st.title("🛡️ RAGShield")
 st.caption("Secure document intelligence · PDF answers with citations and retrieval safeguards")
 st.info("The sample Employee Handbook is a template. Values in square brackets are placeholders, not confirmed company policy.")
-api = os.getenv("RAGSHIELD_API_URL", "http://127.0.0.1:8000")
-token = st.sidebar.text_input("Local access token", type="password", value=os.getenv("RAGSHIELD_ACCESS_TOKEN", ""))
+api = setting("RAGSHIELD_API_URL", "http://127.0.0.1:8000").rstrip("/")
+demo_mode = enabled("RAGSHIELD_DEMO_MODE")
+token = setting("RAGSHIELD_ACCESS_TOKEN")
 headers = {"Authorization": f"Bearer {token}"} if token else {}
 if not token:
-    st.info("Set RAGSHIELD_ACCESS_TOKEN in .env, restart the API, then enter it here.")
+    st.error("Access token is not configured. Set it in .env locally or in the app's Streamlit Cloud secrets.")
+if demo_mode:
+    st.info("Read-only portfolio demo: only pre-indexed sample documents can be queried; uploads are disabled.")
+elif token:
+    token = st.sidebar.text_input("Local access token", type="password", value=token)
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
 
 def request(method, endpoint, **kwargs):
     try:
@@ -26,17 +48,20 @@ def request(method, endpoint, **kwargs):
         return None
 
 st.subheader("Your documents")
-max_pdf_mb = int(os.getenv("RAGSHIELD_MAX_PDF_MB", "20"))
-uploads = st.file_uploader(f"Upload one or more PDFs (maximum {max_pdf_mb} MB each)", type=["pdf"],
-                           accept_multiple_files=True, max_upload_size=max_pdf_mb)
-if st.button("Index PDFs", disabled=not uploads or not token):
-    for upload in uploads:
-        result = request("POST", "/documents", files={"file": (upload.name, upload.getvalue(), "application/pdf")})
-        if result:
-            if result.get("already_indexed"):
-                st.info(f"{result['filename']} is already indexed. No duplicate chunks were added.")
-            else:
-                st.success(f"Indexed {result['filename']} · {result['pages']} pages · {result['flagged_chunks']} injection-flagged chunks excluded · {result['redacted_secret_chunks']} chunks with redacted secrets")
+if not demo_mode:
+    max_pdf_mb = int(setting("RAGSHIELD_MAX_PDF_MB", "20"))
+    uploads = st.file_uploader(f"Upload one or more PDFs (maximum {max_pdf_mb} MB each)", type=["pdf"],
+                               accept_multiple_files=True, max_upload_size=max_pdf_mb)
+    if st.button("Index PDFs", disabled=not uploads or not token):
+        for upload in uploads:
+            result = request("POST", "/documents", files={"file": (upload.name, upload.getvalue(), "application/pdf")})
+            if result:
+                if result.get("already_indexed"):
+                    st.info(f"{result['filename']} is already indexed. No duplicate chunks were added.")
+                else:
+                    st.success(f"Indexed {result['filename']} · {result['pages']} pages · {result['flagged_chunks']} injection-flagged chunks excluded · {result['redacted_secret_chunks']} chunks with redacted secrets")
+else:
+    st.caption("Document upload is disabled in public demo mode.")
 docs = request("GET", "/documents") if token else []
 docs = docs or []
 selected = st.multiselect("Search only selected documents", docs, default=docs,
@@ -45,7 +70,7 @@ selected = st.multiselect("Search only selected documents", docs, default=docs,
 st.subheader("Ask the handbook")
 question = st.text_input("Question", placeholder="How much sick leave is offered?")
 control1, control2 = st.columns(2)
-configured_k = int(os.getenv("RAGSHIELD_TOP_K", "5"))
+configured_k = int(setting("RAGSHIELD_TOP_K", "5"))
 k = control1.select_slider("Retrieved passages (K)", options=[3, 5, 10],
                            value=configured_k if configured_k in [3, 5, 10] else 5)
 strategy = control2.selectbox("Retrieval method", ["semantic", "keyword", "hybrid"],
