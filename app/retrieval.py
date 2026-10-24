@@ -1,9 +1,11 @@
 from chromadb import EphemeralClient, PersistentClient
-from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
 from app.config import PROJECT_ROOT, max_distance, top_k
 from app.chunking import CHUNKING_VERSION, EMBEDDING_MAX_TOKENS, EMBEDDING_MODEL
 import re
 import math
+import os
+
+EMBEDDING_BATCH_SIZE = 16
 
 
 def _terms(text: str) -> list[str]:
@@ -34,19 +36,36 @@ class SecureIndex:
     def __init__(self, directory: str | None = None):
         self.client = EphemeralClient() if directory == ":memory:" else PersistentClient(
             path=directory or str(PROJECT_ROOT / "data" / "chroma"))
-        embed = SentenceTransformerEmbeddingFunction(model_name=EMBEDDING_MODEL)
-        # The model's architecture supports 512 positions. Raise its default
-        # Sentence Transformers truncation limit so 500-token chunks are embedded whole.
-        embed._model.max_seq_length = EMBEDDING_MAX_TOKENS
+        backend = os.getenv("RAGSHIELD_EMBEDDING_BACKEND", "sentence_transformers").strip().lower()
+        if backend == "chroma_onnx":
+            # Chroma's default ONNX implementation uses the same all-MiniLM-L6-v2
+            # model family without loading PyTorch; intended for low-memory hosting.
+            from chromadb.utils.embedding_functions import DefaultEmbeddingFunction
+            embed = DefaultEmbeddingFunction()
+        elif backend == "sentence_transformers":
+            # Import lazily so the low-memory ONNX demo does not initialize PyTorch.
+            from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
+            embed = SentenceTransformerEmbeddingFunction(model_name=EMBEDDING_MODEL)
+            embed._model.max_seq_length = EMBEDDING_MAX_TOKENS
+        else:
+            raise ValueError("RAGSHIELD_EMBEDDING_BACKEND must be sentence_transformers or chroma_onnx.")
         self.collection = self.client.get_or_create_collection(
             "ragshield", embedding_function=embed, metadata={"hnsw:space": "cosine"})
 
     def upsert(self, records: list[dict]):
         if not records:
             return
-        self.collection.upsert(ids=[r["id"] for r in records],
-            documents=[r["text"] for r in records],
-            metadatas=[{k: r[k] for k in ("page", "doc_id", "chunk_id", "filename", "owner_id", "content_hash", "chunk_size", "chunk_overlap", "chunking_version", "injection_flag", "secret_redacted")} for r in records])
+        # Keep embedding inference's temporary arrays small on memory-limited hosts.
+        metadata_keys = ("page", "doc_id", "chunk_id", "filename", "owner_id", "content_hash",
+                         "chunk_size", "chunk_overlap", "chunking_version", "injection_flag",
+                         "secret_redacted")
+        for offset in range(0, len(records), EMBEDDING_BATCH_SIZE):
+            batch = records[offset:offset + EMBEDDING_BATCH_SIZE]
+            self.collection.upsert(
+                ids=[record["id"] for record in batch],
+                documents=[record["text"] for record in batch],
+                metadatas=[{key: record[key] for key in metadata_keys} for record in batch],
+            )
 
     def delete_document(self, owner_id: str, doc_id: str):
         """Delete only one owner's chunks for one content-addressed document."""

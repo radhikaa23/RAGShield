@@ -2,7 +2,7 @@ services:
   - type: web
     name: ragshield-api
     runtime: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements-render.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
@@ -10,3 +10,9 @@ services:
         sync: false
       - key: RAGSHIELD_DEMO_MODE
         value: "true"
+      - key: RAGSHIELD_EMBEDDING_BACKEND
+        value: chroma_onnx
+      - key: RAGSHIELD_CHUNK_SIZE
+        value: "250"
+      - key: RAGSHIELD_CHUNK_OVERLAP
+        value: "38"

@@ -4,7 +4,8 @@ from functools import lru_cache
 
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 EMBEDDING_MAX_TOKENS = 512
-CHUNKING_VERSION = 2
+# Increment when chunk or embedding behavior changes so seeded indexes rebuild.
+CHUNKING_VERSION = 3
 
 
 @lru_cache(maxsize=1)
