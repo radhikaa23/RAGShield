@@ -2,6 +2,7 @@ import os
 import secrets
 import logging
 from contextlib import asynccontextmanager
+from functools import lru_cache
 from pathlib import Path
 from fastapi import FastAPI, File, Header, HTTPException, UploadFile
 from pydantic import BaseModel, Field
@@ -21,17 +22,26 @@ async def lifespan(application):
 
 app = FastAPI(title="RAGShield API", description="PDF question answering with source citations.",
               lifespan=lifespan)
-index = SecureIndex()
 DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 UPLOAD_DIR = DATA_DIR / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
+@lru_cache(maxsize=1)
+def get_index() -> SecureIndex:
+    """Initialize Chroma/ONNX on first data request, not before port binding."""
+    return SecureIndex()
+
+
 def seed_handbook():
+    if os.getenv("RAGSHIELD_PREBUILT_INDEX", "false").strip().lower() in {"1", "true", "yes", "on"}:
+        logging.info("Skipping startup indexing; using the index created during the build.")
+        return
     sample = DATA_DIR / "sample_docs" / "Employee-Handbook.pdf"
     if sample.exists():
         try:
             prepared = prepare_document(sample, "local-owner")
+            index = get_index()
             existing = index.get_document("local-owner", prepared["doc_id"])
             settings_changed = existing and (
                 existing.get("chunk_size") != prepared["chunk_size"] or
@@ -111,6 +121,7 @@ async def upload_document(file: UploadFile = File(...), authorization: str | Non
         raise HTTPException(413, f"PDF must be no larger than {MAX_PDF_BYTES // (1024 * 1024)} MB.")
     safe_name = safe_filename(file.filename)
     _, doc_id = content_identity(payload, owner)
+    index = get_index()
     existing = index.get_document(owner, doc_id)
     if existing:
         same_chunk_settings = (existing.get("chunk_size") == chunk_size() and
@@ -146,7 +157,7 @@ async def upload_document(file: UploadFile = File(...), authorization: str | Non
 def list_documents(authorization: str | None = Header(default=None)):
     owner = authenticate(authorization)
     try:
-        return [{"doc_id": key, "filename": value} for key, value in index.documents(owner).items()]
+        return [{"doc_id": key, "filename": value} for key, value in get_index().documents(owner).items()]
     except Exception as exc:
         logging.error("Document listing failed (error type: %s).", type(exc).__name__)
         raise HTTPException(503, "Document listing is temporarily unavailable.") from exc
@@ -159,6 +170,7 @@ def delete_document(doc_id: str, authorization: str | None = Header(default=None
         raise HTTPException(403, "Document deletion is disabled in read-only demo mode.")
     try:
         # Owner-scoped existence check prevents ID tampering and hides other owners' IDs.
+        index = get_index()
         metadata = index.get_document(owner, doc_id)
         if not metadata:
             raise HTTPException(404, "Document not found.")
@@ -187,6 +199,7 @@ def query(body: Query, authorization: str | None = Header(default=None)):
         question = validate_question(body.question)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
+    index = get_index()
     allowed = set(index.documents(owner))
     if not set(body.doc_ids).issubset(allowed):
         raise HTTPException(403, "One or more selected documents are not available to this user.")

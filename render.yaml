@@ -2,13 +2,15 @@ services:
   - type: web
     name: ragshield-api
     runtime: python
-    buildCommand: pip install -r requirements-render.txt
+    buildCommand: pip install -r requirements-render.txt && RAGSHIELD_EMBEDDING_BACKEND=chroma_onnx RAGSHIELD_CHUNK_SIZE=250 RAGSHIELD_CHUNK_OVERLAP=38 python -m app.build_demo_index
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
       - key: RAGSHIELD_ACCESS_TOKEN
         sync: false
       - key: RAGSHIELD_DEMO_MODE
+        value: "true"
+      - key: RAGSHIELD_PREBUILT_INDEX
         value: "true"
       - key: RAGSHIELD_EMBEDDING_BACKEND
         value: chroma_onnx

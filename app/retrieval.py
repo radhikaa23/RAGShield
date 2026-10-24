@@ -1,4 +1,3 @@
-from chromadb import EphemeralClient, PersistentClient
 from app.config import PROJECT_ROOT, max_distance, top_k
 from app.chunking import CHUNKING_VERSION, EMBEDDING_MAX_TOKENS, EMBEDDING_MODEL
 import re
@@ -34,6 +33,10 @@ def _bm25(query: str, documents: list[str], k1: float = 1.5, b: float = 0.75) ->
 
 class SecureIndex:
     def __init__(self, directory: str | None = None):
+        # Chroma (and ONNX Runtime in the demo backend) is heavy to import.
+        # Import it only when an API request actually needs the index.
+        from chromadb import EphemeralClient, PersistentClient
+
         self.client = EphemeralClient() if directory == ":memory:" else PersistentClient(
             path=directory or str(PROJECT_ROOT / "data" / "chroma"))
         backend = os.getenv("RAGSHIELD_EMBEDDING_BACKEND", "sentence_transformers").strip().lower()
